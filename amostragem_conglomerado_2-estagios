@@ -1,0 +1,69 @@
+getwd()
+
+Alunos<-read.table(file = 'Alunos.txt', header = T)
+
+# variavel de interesse: 'port' (proficiencia em lingua portuguesa)
+# parametro de interesse: media
+
+#install.packages('sampling')
+library(sampling)
+
+# Selecionar uma Amostra Conglomerada Simples
+IACSs=sampling::cluster(Alunos, clustername=c("escola"),
+                        size=16, method=c("srswor"))
+#(as amostras primeiro estágio consistem em escolas )
+
+# A função cluster produz um objeto, que contém os conglomerados
+#selecionados, o identificador dos alunos pertencentes a cada uma das
+#escolas e as probabilidades de seleção dos mesmos.
+
+IACSs
+
+ACSs=getdata(Alunos,IACSs) # Para produzirmos um objeto com dados
+#amostrais para a amostraselecionada digite:
+ACSs
+
+# Estimacao da media e do erro padrao (variavel Survey)
+
+#install.packages('survey')
+library(survey)
+
+fpc2=rep(191,dim(IACSs)[1]) # finite population correction
+PlanoC=svydesign(id=~escola, data = ACSs, probs=~IACSs$Prob,
+                 fpc=~fpc2) # Para especificar o plano amostral
+#adotado na seleção da amostra.
+
+svymean(~port,PlanoC)
+
+
+# Selecionar uma Amostra Conglomerada em 2 estágios
+library(sampling)
+
+n2=rep(1,32[1])
+IAC2=mstage(Alunos, stage=list('cluster','cluster'),
+            varnames=list('escola', 'turma'), size=list(32,n2),
+            method=list('srswor', 'srswor'))
+
+# A função mstage produz um objeto do tipo lista com informações
+# sobre as unidades selecionadas em cada um dos estágios
+# considerados.
+
+# Para verificarmos quais foram as escolas selecionadas no primeiro
+# estágio e quais foram as turmas selecionadas no segundo estágio
+# digite, respectivamente:
+
+unique(IAC2[[1]]$escola)
+unique(IAC2[[2]]$turma)
+
+# O comando a seguir irá extrair da base populacional os dados
+# amostrais para a amostra de alunos selecionada.
+
+AC2=getdata(Alunos,IAC2)[[2]]
+
+PlanoC2=svydesign(data=AC2,ids=~escola+turma, nest=TRUE,
+                  probs=AC2$Prob) # especificar o plano amostral adotado na
+#seleção da amostra.
+
+# EStimar media e erro padrao
+svymean(~port,PlanoC2)
+
